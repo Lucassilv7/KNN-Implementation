@@ -1,11 +1,10 @@
 from typing import Literal
 from collections import Counter
-from sklearn.neighbors import BallTree, KDTree
+from algrithms.balltree import BallTree
+from algrithms.kdtree import KDimensionalTree
 from sklearn.base import BaseEstimator, ClassifierMixin
+from calc.equations import minkowski_distance
 import numpy as np
-
-def minkowski_distance(self, x1, x2):
-    return np.sum(np.abs(x1 - x2) ** self.p_minkowski) ** (1 / self.p_minkowski)
 
 class KNeighborsClassifier(BaseEstimator, ClassifierMixin):
 
@@ -22,9 +21,9 @@ class KNeighborsClassifier(BaseEstimator, ClassifierMixin):
         self.y_train = np.array(y)
 
         if self.algorithm == 'kd_tree':
-                self.tree = KDTree(self.X_train, leaf_size=self.leaf_size, metric='minkowski', p=self.p_minkowski)
+                self.tree = KDimensionalTree(self.X_train, leaf_size=self.leaf_size, metric='minkowski', p_minkowski=self.p_minkowski)
         elif self.algorithm == 'ball_tree':
-            self.tree = BallTree(self.X_train, leaf_size=self.leaf_size, metric='minkowski', p=self.p_minkowski)
+            self.tree = BallTree(self.X_train, leaf_size=self.leaf_size, metric='minkowski', p_minkowski=self.p_minkowski)
         else:
             self.tree = None
 
@@ -35,12 +34,12 @@ class KNeighborsClassifier(BaseEstimator, ClassifierMixin):
     def _predict(self, x):
 
         if self.algorithm in ('kd_tree', 'ball_tree'):
-            distances, indices = self.tree.query(x, k=self.n_neighbors)
+            distances, indices = self.tree.query([x], k=self.n_neighbors)
             distances = distances[0]
             nearest_indices = indices[0]
         else:
             # For brute force search, calculate distances manually
-            distances = [minkowski_distance(x, x_train) for x_train in self.X_train]
+            distances = [minkowski_distance(x, x_train, self.p_minkowski) for x_train in self.X_train]
             nearest_indices = np.argsort(distances)[:self.n_neighbors]
 
         nearest_labels = [self.y_train[i] for i in nearest_indices]
@@ -51,13 +50,11 @@ class KNeighborsClassifier(BaseEstimator, ClassifierMixin):
             label_count = Counter(nearest_labels)
             return label_count.most_common(1)[0][0]
         elif self.weights == 'distance':
-            # Distance weights: weight labels by the inverse of their distances
             class_votes = {}
-            for i in nearest_indices:
-                label = self.y_train[i]
-                weight = 1 / distances[i] if distances[i] != 0 else float('inf')  # Avoid division by zero
+            for dist, idx in zip(distances, nearest_indices):
+                label = self.y_train[idx]
+                weight = 1 / dist if dist != 0 else float('inf')
                 class_votes[label] = class_votes.get(label, 0) + weight
-            # Return the label with the highest weighted vote
             return max(class_votes.items(), key=lambda x: x[1])[0]
         else:
             raise ValueError("Invalid value for 'weights'. Must be 'uniform' or 'distance'.")
