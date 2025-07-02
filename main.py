@@ -2,7 +2,7 @@ import pandas as pd
 from sklearn import metrics
 from sklearn.datasets import load_iris
 from sklearn.model_selection import train_test_split
-from knn import KNeighborsClassifier
+from algrithms.knn import KNeighborsClassifier
 
 # Test with the Iris dataset
 
@@ -10,7 +10,7 @@ iris = load_iris()
 dfIris = pd.DataFrame(iris["data"], columns=iris["feature_names"])
 dfIris.loc[:, "class"] = iris["target"]
 
-knn = KNeighborsClassifier(n_neighbors = 7)
+knn = KNeighborsClassifier()
 
 # Hold out 25% of the data for testing
 xTrain, xTest, yTrain, yTest = train_test_split(dfIris.drop(columns=['class']), dfIris['class'], test_size=0.25, stratify=dfIris['class'])
@@ -39,8 +39,8 @@ plt.plot(k_range, scores)
 plt.xlabel('Number of Neighbors (k)')
 plt.ylabel('Accuracy')
 plt.title('Elbow Method for Optimal k')
-plt.savefig("elbow_plot.png")
-print("Elbow plot saved as 'elbow_plot.png'.")
+plt.savefig("graph/elbow_plot.png")
+print("Elbow plot saved as 'graph/elbow_plot.png'.")
 
 # Show the best k value
 best_k = k_range[scores.index(max(scores))]

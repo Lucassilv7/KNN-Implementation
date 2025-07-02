@@ -4,6 +4,9 @@ from sklearn.neighbors import BallTree, KDTree
 from sklearn.base import BaseEstimator, ClassifierMixin
 import numpy as np
 
+def minkowski_distance(self, x1, x2):
+    return np.sum(np.abs(x1 - x2) ** self.p_minkowski) ** (1 / self.p_minkowski)
+
 class KNeighborsClassifier(BaseEstimator, ClassifierMixin):
 
     def __init__(self, n_neighbors: int = 5, weights: Literal['uniform', 'distance'] = 'uniform',
@@ -19,7 +22,7 @@ class KNeighborsClassifier(BaseEstimator, ClassifierMixin):
         self.y_train = np.array(y)
 
         if self.algorithm == 'kd_tree':
-            self.tree = KDTree(self.X_train, leaf_size=self.leaf_size, metric='minkowski', p=self.p_minkowski)
+                self.tree = KDTree(self.X_train, leaf_size=self.leaf_size, metric='minkowski', p=self.p_minkowski)
         elif self.algorithm == 'ball_tree':
             self.tree = BallTree(self.X_train, leaf_size=self.leaf_size, metric='minkowski', p=self.p_minkowski)
         else:
@@ -37,7 +40,7 @@ class KNeighborsClassifier(BaseEstimator, ClassifierMixin):
             nearest_indices = indices[0]
         else:
             # For brute force search, calculate distances manually
-            distances = [self.minkowski_distance(x, x_train) for x_train in self.X_train]
+            distances = [minkowski_distance(x, x_train) for x_train in self.X_train]
             nearest_indices = np.argsort(distances)[:self.n_neighbors]
 
         nearest_labels = [self.y_train[i] for i in nearest_indices]
@@ -67,11 +70,3 @@ class KNeighborsClassifier(BaseEstimator, ClassifierMixin):
             'leaf_size': self.leaf_size,
             'p_minkowski': self.p_minkowski
         }
-
-    def minkowski_distance(self, x1, x2):
-        return np.sum(np.abs(x1 - x2) ** self.p_minkowski) ** (1 / self.p_minkowski)
-
-    def score(self, X, y):
-        predictions = self.predict(X)
-        correct_predictions = sum(pred == true for pred, true in zip(predictions, y))
-        return correct_predictions / len(y) if len(y) > 0 else 0.0
